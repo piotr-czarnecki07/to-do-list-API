@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 
 from db_model.models import User, List, Task
-from serializers import UserSerializer, ListSerializer, TaskSerializer
-from decorators import get_post_data, check_signup_post_data
+from toDoListAPIViews.serializers import UserSerializer, ListSerializer, TaskSerializer
+from toDoListAPIViews.decorators import get_post_data, check_signup_post_data
 from toDoListAPI.settings import env
 
 from django.core.exceptions import ValidationError
@@ -58,7 +58,7 @@ def createList(request):
 
 @api_view(['POST'])
 @get_post_data
-def addToList(request):
+def addItemToList(request):
     pass
 
 
@@ -70,13 +70,13 @@ def updateItemFromList(request):
 
 @api_view(['POST'])
 @get_post_data
-def markDoneFromList(request):
+def markItemDoneFromList(request):
     pass
 
 
 @api_view(['POST'])
 @get_post_data
-def deleteFromList(request):
+def deleteItemFromList(request):
     pass
 
 

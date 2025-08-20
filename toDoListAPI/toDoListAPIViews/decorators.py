@@ -12,7 +12,7 @@ def check_signup_post_data(view):
     @wraps(view)
     def wrapper(request):
         # check parameters
-        for param in ('name', 'email', 'password'):
+        for param in ('username', 'email', 'password'):
             if param not in request.data: # email and password fields were checked with decorators
                 return Response({'error', 'username, email or password is missing'}, status=status.HTTP_400_BAD_REQUEST)
 

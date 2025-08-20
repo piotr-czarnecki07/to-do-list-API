@@ -4,7 +4,7 @@ import environ
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-environ.Env.read_env()
+env.read_env('.env')
 
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 DEBUG = env.bool('DEBUG')
@@ -20,7 +20,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'db_model'
+    'db_model',
+    'toDoListAPIViews'
 ]
 
 MIDDLEWARE = [
