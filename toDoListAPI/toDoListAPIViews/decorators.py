@@ -24,9 +24,16 @@ def get_post_data(view):
 
     return wrapper
 
+# check if email is repeated
 def validate_email(view):
     @wraps(view)
     def wrapper(request):
-        pass
+        if request.data.get('email') is None:
+            return Response({'error': 'Email is missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email=request.data.get('email')).first() is not None:
+            return Response({'error': 'This email is taken'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return view(request)
 
     return wrapper
