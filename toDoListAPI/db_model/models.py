@@ -7,6 +7,8 @@ class User(models.Model):
 
     lists = models.JSONField(default=list)
 
+    token = models.CharField(max_length=50)
+
 class List(models.Model):
     list_name = models.CharField(max_length=50, unique=True)
     tasks = models.JSONField(default=list)
