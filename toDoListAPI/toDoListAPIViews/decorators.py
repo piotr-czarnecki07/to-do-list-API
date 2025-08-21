@@ -4,6 +4,7 @@ from functools import wraps
 
 from db_model.models import User
 from toDoListAPI.settings import env
+from toDoListAPIViews.views import hash_password
 
 import json
 
@@ -46,6 +47,23 @@ def get_post_data(view):
         except (TypeError, ValueError):
             return Response({'error': 'Data was not sent'}, status=status.HTTP_400_BAD_REQUEST)
 
+        return view(request)
+
+    return wrapper
+
+# checks request token, retrieves user record and assigns it to request.user
+def check_token(view):
+    @wraps(view)
+    def wrapper(request):
+        if request.data.get('token') is None:
+            return Response({'error': 'Token was not sent'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(token=hash_password(request.data['token'])).first()
+
+        if user is None:
+            return Response({'error': 'User with this token was not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        request.user = user
         return view(request)
 
     return wrapper
