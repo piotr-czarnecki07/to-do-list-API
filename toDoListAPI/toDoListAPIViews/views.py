@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 
 from db_model.models import User, List, Task
-from toDoListAPIViews.serializers import UserSerializer, ListSerializer, TaskSerializer
-from toDoListAPIViews.decorators import get_post_data, check_signup_post_data
+from toDoListAPIViews.serializers import ListSerializer, TaskSerializer
+from toDoListAPIViews.decorators import get_post_data, check_signup_post_data, check_token
 from toDoListAPI.settings import env
 
 from django.core.exceptions import ValidationError
@@ -65,6 +65,9 @@ def signup(request):
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    except KeyError:
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response({'token': token}, status=status.HTTP_201_CREATED)
@@ -75,7 +78,7 @@ def signup(request):
 def login(request):
     for param in ('email', 'password'):
         if request.data.get(param) is None:
-            return Response({'error': 'email or was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Email or was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.filter(email=request.data['email']).first()
     hashed_pw = hash_password(request.data['password'])
@@ -89,10 +92,32 @@ def login(request):
 
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def createList(request):
-    pass
+    if 'list_name' not in request.data:
+        return Response({'error': 'List name was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        new_list = List(list_name=request.data['list_name'], tasks=[])
+        new_list.save()
 
+        request.user.lists.append(new_list.id) # add another to-do list to user account
+        request.user.save()
+
+        serializer = ListSerializer(new_list)
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    except KeyError:
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 @get_post_data
