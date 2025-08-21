@@ -148,6 +148,10 @@ def deleteItemFromList(request):
 def deleteList(request):
     pass
 
+@api_view(['GET'])
+def getListsIDs(request):
+    pass
+
 
 @api_view(['GET'])
 def getItemsFromList(request):

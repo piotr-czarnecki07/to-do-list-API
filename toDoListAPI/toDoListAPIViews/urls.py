@@ -11,5 +11,6 @@ urlpatterns = [
     path('operation/markItemDoneFromList/', views.markItemDoneFromList),
     path('operation/deleteItemFromList/', views.deleteItemFromList),
     path('operation/deleteList/', views.deleteList),
-    path('operation/getItemsFromList/', views.getItemsFromList),
+    path('operation/getListsIDs/', views.getListsIDs),
+    path('operation/getItemsFromList/', views.getItemsFromList)
 ]
