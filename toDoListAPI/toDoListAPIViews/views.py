@@ -23,6 +23,15 @@ def hash_password(password: str) -> str:
 
     return hashed_pw
 
+def dehash_password(password: str) -> str:
+    dehash_table = json.loads(env('DEHASH_TABLE'))
+    dehashed_pw = ''
+
+    for i in password:
+        dehashed_pw += dehash_table.get(i)
+
+    return dehashed_pw
+
 # user token generator
 def generate_token() -> str:
     # create token
@@ -64,7 +73,19 @@ def signup(request):
 @api_view(['POST'])
 @get_post_data
 def login(request):
-    pass
+    for param in ('email', 'password'):
+        if request.data.get(param) is None:
+            return Response({'error': 'email or was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email=request.data['email']).first()
+    hashed_pw = hash_password(request.data['password'])
+
+    if user.password != hashed_pw:
+        return Response({'error': 'Password is incorrect'}, status=status.HTTP_403_FORBIDDEN)
+    
+    token = dehash_password(user.token)
+
+    return Response({'token': token}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
