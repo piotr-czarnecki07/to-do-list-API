@@ -45,12 +45,11 @@ def generate_token() -> str:
 def signup(request):
     hashed_password = hash_password(request.data['password'])
     token = generate_token()
+    hashed_token = hashed_password(token)
 
     try:
-        user = User(username=request.data['username'], email=request.data['email'], password=hashed_password, token=token)
+        user = User(username=request.data['username'], email=request.data['email'], password=hashed_password, token=hashed_token)
         user.save()
-
-        serializer = UserSerializer(user)
 
     except ValidationError:
         return Response({'error', 'Name or email is too long'}, status=status.HTTP_400_BAD_REQUEST)
