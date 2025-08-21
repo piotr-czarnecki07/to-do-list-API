@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.db import DatabaseError
 
 import json
+import random
 
 # hash password before save it to database to prevent data leaks
 def hash_password(password: str) -> str:
@@ -22,14 +23,31 @@ def hash_password(password: str) -> str:
 
     return hashed_pw
 
+# user token generator
+def generate_token() -> str:
+    # create token
+    token = ''
+    hash_table = json.load(env('HASH_TABLE'))
+
+    for _ in range(49): # limit is 50
+        token += random.choice(hash_table.keys())
+
+    # check if it's unique
+    if User.objects.filter(token=token).first() is not None:
+        return generate_token()
+
+    return token
+
+
 @api_view(['POST'])
 @check_signup_post_data
 @get_post_data
 def signup(request):
     hashed_password = hash_password(request.data['password'])
+    token = generate_token()
 
     try:
-        user = User(username=request.data['username'], email=request.data['email'], password=hashed_password)
+        user = User(username=request.data['username'], email=request.data['email'], password=hashed_password, token=token)
         user.save()
 
         serializer = UserSerializer(user)
@@ -41,7 +59,7 @@ def signup(request):
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     else:
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'token': token}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
