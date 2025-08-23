@@ -156,7 +156,31 @@ def addItemToList(request):
 @api_view(['POST'])
 @get_post_data
 def updateItemFromList(request):
-    pass
+    for param in ('task_id', 'title'):
+        if param not in request.data:
+            return Response({'error': 'Task ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        task = Task.objects.filter(id=request.data['task_id']).first()
+        if task is None:
+            return Response({'error': 'Task was not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        task.title = request.data['title']
+        task.save()
+
+        serializer = TaskSerializer(task)
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
