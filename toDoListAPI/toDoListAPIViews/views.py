@@ -18,8 +18,11 @@ def hash_password(password: str) -> str:
     hash_table = json.loads(env('HASH_TABLE'))
     hashed_pw = ''
 
-    for i in password:
-        hashed_pw += hash_table.get(i)
+    try:
+        for i in password:
+            hashed_pw += hash_table.get(i)
+    except KeyError:
+        return Response({'error': 'Forbidden symbol during hashing, use only a-z, A-Z, 0-9, !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
 
     return hashed_pw
 
@@ -46,6 +49,27 @@ def generate_token() -> str:
         return generate_token()
 
     return token
+
+# checks if id provided by user belongs to them
+# it means, if user provided list ID 1, check if "user_lists" list has element, that is equal to 1
+# furthermore, if provided task ID 4, check if list on ID 1 (checked before) has task ID equal to 4
+def check_if_item_belogs_to_list(item_id: int, list_obj: list) -> bool:
+    start = 0
+    end = len(list_obj) - 1
+    found = False
+
+    while start <= end:
+        mid = (start + end) // 2
+
+        if list_obj[mid] == item_id:
+            found = True
+            break
+        elif list_obj[mid] < item_id:
+            start = mid + 1
+        else:
+            end = mid - 1
+
+    return found
 
 
 @api_view(['POST'])
@@ -128,12 +152,13 @@ def addItemToList(request):
             return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
+            return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
+
+        user_list = List.objects.filter(id=request.data['list_id']).first() # if we got to this point, this list must exists, becouse if statement before would go off
+
         new_task = Task(title=request.data['title'], status='to-do')
         new_task.save()
-
-        user_list = List.objects.filter(id=request.data['list_id']).first()
-        if user_list is None:
-            return Response({'error': 'List was not found'}, status=status.HTTP_404_NOT_FOUND)
 
         user_list.tasks.append(new_task.id)
         user_list.save()
@@ -154,16 +179,23 @@ def addItemToList(request):
 
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def updateItem(request):
-    for param in ('task_id', 'title'):
+    for param in ('task_id', 'title', 'list_id'):
         if param not in request.data:
             return Response({'error': 'Task ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        task = Task.objects.filter(id=request.data['task_id']).first()
-        if task is None:
-            return Response({'error': 'Task was not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
+            return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        
+        if not check_if_item_belogs_to_list(request.data['task_id'], user_list.tasks):
+            return Response({'error': 'Task with this ID does not belog to this list'}, status=status.HTTP_403_FORBIDDEN)
+
+        task = Task.objects.filter(id=request.data['task_id']).first() # at the point, this task must exists, because if statement before would go off
         
         task.title = request.data['title']
         task.save()
@@ -184,6 +216,7 @@ def updateItem(request):
 
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def markItemDone(request):
     for param in ('task_id', 'list_id'):
@@ -191,53 +224,15 @@ def markItemDone(request):
             return Response({'error': 'Task or list ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
-        user_lists = request.user.lists
-        target_id = int(request.data['list_id'])
+        if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
+            return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
 
-        start = 0
-        end = len(user_lists) - 1
-        found = False
-
-        while start <= end:
-            mid = (start + end) // 2
-            if user_lists[mid] == target_id:
-                found = True
-                break
-            elif user_lists[mid] < target_id:
-                start = mid + 1
-            else:
-                end = mid - 1
-
-        if not found:
-            return Response({'error': 'List with this ID does not belong to this user'}, status=status.HTTP_400_BAD_REQUEST)
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        
+        if not check_if_item_belogs_to_list(request.data['task_id'], user_list.tasks):
+            return Response({'error': 'Task with this ID does not belog to this list'}, status=status.HTTP_403_FORBIDDEN)
 
         task = Task.objects.filter(id=request.data['task_id']).first()
-        if task is None:
-            return Response({'error': 'Task was not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        user_list = List.objects.filter(id=request.data['list_id']).first()
-        if user_list is None:
-            return Response({'error': 'List was not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        target_id = int(request.data['task_id'])
-        tasks = user_list.tasks
-        found = False
-
-        start = 0
-        end = len(tasks) - 1
-
-        while start <= end:
-            mid = (start + end) // 2
-            if tasks[mid] == target_id:
-                found = True
-                break
-            elif tasks[mid] < target_id:
-                start = mid + 1
-            else:
-                end = mid - 1
-
-        if not found:
-            return Response({'error': 'Task with this ID does not belong to this list'}, status=status.HTTP_400_BAD_REQUEST)
 
         task.status = 'done'
         task.save()
@@ -258,22 +253,26 @@ def markItemDone(request):
 
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def deleteItem(request):
     pass
 
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def deleteList(request):
     pass
 
 
-@api_view(['GET'])
+@api_view(['POST'])
+@check_token
 def getListsIDs(request):
     pass
 
 
-@api_view(['GET'])
+@api_view(['POST'])
+@check_token
 def getItemsFromList(request):
     pass
