@@ -66,7 +66,7 @@ def signup(request):
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    except KeyError:
+    except (KeyError, ValueError):
         return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
@@ -112,17 +112,45 @@ def createList(request):
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    except KeyError:
+
+    except (KeyError, ValueError):
         return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
+@check_token
 @get_post_data
 def addItemToList(request):
-    pass
+    for param in ('list_id', 'title'):
+        if param not in request.data:
+            return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        new_task = Task(title=request.data['title'], status='to-do')
+        new_task.save()
+
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        if user_list is None:
+            return Response({'error': 'List was not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user_list.tasks.append(new_task)
+        user_list.save()
+
+        serializer = TaskSerializer(new_task)
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
@@ -147,6 +175,7 @@ def deleteItemFromList(request):
 @get_post_data
 def deleteList(request):
     pass
+
 
 @api_view(['GET'])
 def getListsIDs(request):
