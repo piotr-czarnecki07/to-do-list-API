@@ -186,7 +186,75 @@ def updateItem(request):
 @api_view(['POST'])
 @get_post_data
 def markItemDone(request):
-    pass
+    for param in ('task_id', 'list_id'):
+        if param not in request.data:
+            return Response({'error': 'Task or list ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user_lists = request.user.lists
+        target_id = int(request.data['list_id'])
+
+        start = 0
+        end = len(user_lists) - 1
+        found = False
+
+        while start <= end:
+            mid = (start + end) // 2
+            if user_lists[mid] == target_id:
+                found = True
+                break
+            elif user_lists[mid] < target_id:
+                start = mid + 1
+            else:
+                end = mid - 1
+
+        if not found:
+            return Response({'error': 'List with this ID does not belong to this user'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task = Task.objects.filter(id=request.data['task_id']).first()
+        if task is None:
+            return Response({'error': 'Task was not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        if user_list is None:
+            return Response({'error': 'List was not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        target_id = int(request.data['task_id'])
+        tasks = user_list.tasks
+        found = False
+
+        start = 0
+        end = len(tasks) - 1
+
+        while start <= end:
+            mid = (start + end) // 2
+            if tasks[mid] == target_id:
+                found = True
+                break
+            elif tasks[mid] < target_id:
+                start = mid + 1
+            else:
+                end = mid - 1
+
+        if not found:
+            return Response({'error': 'Task with this ID does not belong to this list'}, status=status.HTTP_400_BAD_REQUEST)
+
+        task.status = 'done'
+        task.save()
+
+        serializer = TaskSerializer(task)
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
