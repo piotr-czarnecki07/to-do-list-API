@@ -135,7 +135,7 @@ def addItemToList(request):
         if user_list is None:
             return Response({'error': 'List was not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        user_list.tasks.append(new_task)
+        user_list.tasks.append(new_task.id)
         user_list.save()
 
         serializer = TaskSerializer(new_task)
@@ -155,7 +155,7 @@ def addItemToList(request):
 
 @api_view(['POST'])
 @get_post_data
-def updateItemFromList(request):
+def updateItem(request):
     for param in ('task_id', 'title'):
         if param not in request.data:
             return Response({'error': 'Task ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -185,13 +185,13 @@ def updateItemFromList(request):
 
 @api_view(['POST'])
 @get_post_data
-def markItemDoneFromList(request):
+def markItemDone(request):
     pass
 
 
 @api_view(['POST'])
 @get_post_data
-def deleteItemFromList(request):
+def deleteItem(request):
     pass
 
 
