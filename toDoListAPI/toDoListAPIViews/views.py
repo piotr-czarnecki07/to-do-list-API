@@ -194,7 +194,36 @@ def markItemDone(request):
 @check_token
 @get_post_data
 def deleteItem(request):
-    pass
+    for param in ('task_id', 'list_id'):
+        if param not in request.data:
+            return Response({'error': 'Task or list ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
+            return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
+
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        
+        if not check_if_item_belogs_to_list(request.data['task_id'], user_list.tasks):
+            return Response({'error': 'Task with this ID does not belog to this list'}, status=status.HTTP_403_FORBIDDEN)
+
+        task = Task.objects.filter(id=request.data['task_id']).first()
+
+        task.delete()
+
+        serializer = TaskSerializer(task)
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
