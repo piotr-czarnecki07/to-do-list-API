@@ -61,7 +61,7 @@ def check_token(view):
         user = User.objects.filter(token=hash_password(request.data['token'])).first()
 
         if user is None:
-            return Response({'error': 'User with this token was not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'User with this token was not found, maybe try loggin in.'}, status=status.HTTP_404_NOT_FOUND)
         
         request.user = user
         return view(request)
