@@ -40,7 +40,7 @@ def signup(request):
 def login(request):
     for param in ('email', 'password'):
         if request.data.get(param) is None:
-            return Response({'error': 'Email or was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Email or password was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.filter(email=request.data['email']).first()
     hashed_pw = hash_password(request.data['password'])
@@ -90,6 +90,8 @@ def addItemToList(request):
             return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        request.data['list_id'] = int(request.data['list_id'])
+
         if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
             return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -104,7 +106,7 @@ def addItemToList(request):
         serializer = TaskSerializer(new_task)
 
     except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error', 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -125,6 +127,9 @@ def updateItem(request):
             return Response({'error': 'Task ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        request.data['list_id'] = int(request.data['list_id'])
+        request.data['task_id'] = int(request.data['task_id'])
+
         if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
             return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -141,7 +146,7 @@ def updateItem(request):
         serializer = TaskSerializer(task)
 
     except ValidationError:
-        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error', 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -162,6 +167,9 @@ def markItemDone(request):
             return Response({'error': 'Task or list ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        request.data['list_id'] = int(request.data['list_id'])
+        request.data['task_id'] = int(request.data['task_id'])
+
         if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
             return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -176,9 +184,6 @@ def markItemDone(request):
         task.save()
 
         serializer = TaskSerializer(task)
-
-    except ValidationError:
-        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -199,6 +204,9 @@ def deleteItem(request):
             return Response({'error': 'Task or list ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        request.data['list_id'] = int(request.data['list_id'])
+        request.data['task_id'] = int(request.data['task_id'])
+
         if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
             return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -211,9 +219,6 @@ def deleteItem(request):
         serializer = TaskSerializer(task)
 
         task.delete()
-
-    except ValidationError:
-        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -233,6 +238,8 @@ def deleteList(request):
         return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        request.data['list_id'] = int(request.data['list_id'])
+
         if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
             return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -240,9 +247,6 @@ def deleteList(request):
         serializer = ListSerializer(user_list)
         
         user_list.delete()
-
-    except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -258,13 +262,7 @@ def deleteList(request):
 @check_token
 def getListsIDs(request):
     try:
-        user_lists = []
-
-        for list_id in request.user.lists:
-            user_lists.append(int(list_id))
-
-    except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        user_lists = request.user.lists
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -278,4 +276,27 @@ def getListsIDs(request):
 @api_view(['POST'])
 @check_token
 def getItemsFromList(request):
-    pass
+    if 'list_id' not in request.data:
+        return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        request.data['list_id'] = int(request.data['list_id'])
+
+        if not check_if_item_belogs_to_list(request.data['list_id'], request.user.lists):
+            return Response({'error': 'List with this ID does not belog to this user'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user_list = List.objects.filter(id=request.data['list_id']).first()
+        if user_list.tasks == []:
+            return Response([], status=status.HTTP_200_OK)
+
+        tasks = Task.objects.filter(id__in=user_list.tasks)
+        serializer = TaskSerializer(tasks, many=True)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response(serializer.data, status=status.HTTP_200_OK)
