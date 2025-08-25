@@ -141,7 +141,7 @@ def updateItem(request):
         serializer = TaskSerializer(task)
 
     except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -178,7 +178,7 @@ def markItemDone(request):
         serializer = TaskSerializer(task)
 
     except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -213,7 +213,7 @@ def deleteItem(request):
         task.delete()
 
     except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error', 'List or task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError:
         return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -257,8 +257,23 @@ def deleteList(request):
 @api_view(['POST'])
 @check_token
 def getListsIDs(request):
-    pass
+    try:
+        user_lists = []
 
+        for list_id in request.user.lists:
+            user_lists.append(int(list_id))
+
+    except ValidationError:
+        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError:
+        return Response({'error', 'Database error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except (KeyError, ValueError):
+        return Response({'error': 'Unable to retrieve lists'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    else:
+        return Response(user_lists, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @check_token
