@@ -13,6 +13,10 @@ class List(models.Model):
     list_name = models.CharField(max_length=50, unique=True)
     tasks = models.JSONField(default=list)
 
+    creadtedAt = models.DateTimeField(auto_now_add=True)
+
 class Task(models.Model):
     title = models.CharField(max_length=50, unique=True)
     status = models.CharField(max_length=20)
+
+    createdAt = models.DateTimeField(auto_now_add=True)

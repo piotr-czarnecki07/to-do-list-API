@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from db_model.models import User, List, Task
 from toDoListAPIViews.serializers import ListSerializer, TaskSerializer
 from toDoListAPIViews.decorators import get_post_data, check_signup_post_data, check_token
-from utilities import hash_password, dehash_password, generate_token, check_if_item_belogs_to_list
+from toDoListAPIViews.utilities import hash_password, dehash_password, generate_token, check_if_item_belogs_to_list
 
 from django.core.exceptions import ValidationError
 from django.db import DatabaseError

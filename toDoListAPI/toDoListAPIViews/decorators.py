@@ -4,7 +4,7 @@ from functools import wraps
 
 from db_model.models import User
 from toDoListAPI.settings import env
-from toDoListAPIViews.views import hash_password
+from toDoListAPIViews.utilities import hash_password
 
 import json
 
