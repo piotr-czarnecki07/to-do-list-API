@@ -27,7 +27,7 @@ def check_signup_post_data(view):
 
         for i in request.data.get('password'):
             if i not in json.loads(env('HASH_TABLE')).keys():
-                return Response({'error', 'Password contains forbidden symbols. Available symbols: a-z, A-Z, 0-9, !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error', 'Password contains forbidden symbols. Available symbols: a-z A-Z 0-9 !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
 
         return view(request)
 
