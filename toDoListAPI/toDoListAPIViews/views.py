@@ -71,6 +71,37 @@ def logout(request):
 
     return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
 
+# resends token after veryfing user
+@api_view(['POST'])
+@get_post_data
+def remindToken(request):
+    for param in ('email', 'password'):
+        if param not in request.data:
+            return Response({'error': 'Email or password was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.filter(email=request.data['email']).first()
+
+        if user is None:
+            return Response({'error': 'User with this email was not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user.password != hash_password(request.data['password']):
+            return Response({'error': 'Password is incorrect'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if user.token is not None and user.token != 'logged_out':
+            dehashed_token = dehash_password(user.token)
+        else:
+            return Response({'message': 'User is not logged in'}, status=status.HTTP_204_NO_CONTENT)
+
+    except ValidationError:
+        return Response({'error', 'Email or password that was sent is too long'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except DatabaseError as e:
+        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    else:
+        return Response({'token': dehashed_token}, status=status.HTTP_200_OK)
+
 # create new lists for Task objects
 @api_view(['POST'])
 @check_token
