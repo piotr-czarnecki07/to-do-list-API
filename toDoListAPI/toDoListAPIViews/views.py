@@ -24,13 +24,13 @@ def signup(request):
         user.save()
 
     except ValidationError:
-        return Response({'error', 'Name or email is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Name or email is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response({'token': token}, status=status.HTTP_201_CREATED)
@@ -62,7 +62,7 @@ def login(request):
         user.save()
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({'token': token}, status=status.HTTP_200_OK)
 
@@ -99,10 +99,10 @@ def remindToken(request):
             return Response({'message': 'User is not logged in'}, status=status.HTTP_204_NO_CONTENT)
 
     except ValidationError:
-        return Response({'error', 'Email or password that was sent is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Email or password that was sent is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     else:
         return Response({'token': dehashed_token}, status=status.HTTP_200_OK)
@@ -116,6 +116,9 @@ def createList(request):
         return Response({'error': 'List name was not provided'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
+        if List.objects.filter(list_name=request.data['list_name']).first() is not None:
+            return Response({'error': 'List with this name already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
         new_list = List(list_name=request.data['list_name'], tasks=[])
         new_list.save()
 
@@ -125,13 +128,13 @@ def createList(request):
         serializer = ListSerializer(new_list)
 
     except ValidationError:
-        return Response({'error', 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'List name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -143,7 +146,7 @@ def createList(request):
 def addItemToList(request):
     for param in ('list_id', 'title'): # check parameters sent by the user
         if param not in request.data:
-            return Response({'error': 'List ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'List ID or task title was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         request.data['list_id'] = int(request.data['list_id']) # convert list_id parameter to int
@@ -162,13 +165,13 @@ def addItemToList(request):
         serializer = TaskSerializer(new_task)
 
     except ValidationError:
-        return Response({'error', 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -180,7 +183,7 @@ def addItemToList(request):
 def updateItem(request):
     for param in ('task_id', 'title', 'list_id'):
         if param not in request.data:
-            return Response({'error': 'Task ID was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Task ID, list ID or task title was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         request.data['list_id'] = int(request.data['list_id']) # convert ids to int
@@ -202,13 +205,13 @@ def updateItem(request):
         serializer = TaskSerializer(task)
 
     except ValidationError:
-        return Response({'error', 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Task name is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -242,10 +245,10 @@ def markItemDone(request):
         serializer = TaskSerializer(task)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -277,10 +280,10 @@ def deleteItem(request):
         task.delete()
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
@@ -305,10 +308,10 @@ def deleteList(request):
         user_list.delete()
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
@@ -318,10 +321,14 @@ def deleteList(request):
 @check_token
 def getListsIDs(request):
     try:
-        user_lists = request.user.lists
+        user_lists = []
+
+        for list_id in request.user.lists:
+            list_name = List.objects.get(id=list_id).list_name
+            user_lists.append({list_name: list_id})
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
         return Response({'error': 'Unable to retrieve lists'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -350,10 +357,10 @@ def getItemsFromList(request):
         serializer = TaskSerializer(tasks, many=True)
 
     except DatabaseError as e:
-        return Response({'error', f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'Database error: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except (KeyError, ValueError):
-        return Response({'error', 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid request body'}, status=status.HTTP_400_BAD_REQUEST)
 
     else:
         return Response(serializer.data, status=status.HTTP_200_OK)

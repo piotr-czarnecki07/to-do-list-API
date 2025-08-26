@@ -1,30 +1,27 @@
 from rest_framework.response import Response
 from rest_framework import status
-from toDoListAPI.settings import env
 from db_model.models import User
+from toDoListAPIViews.hashes import HASH_TABLE, DEHASH_TABLE
 
 import random
-import json
 
 # hash password before save it to database to prevent data leaks
 def hash_password(password: str) -> str:
-    hash_table = json.loads(env('HASH_TABLE'))
     hashed_pw = ''
 
     try:
         for i in password:
-            hashed_pw += hash_table.get(i)
+            hashed_pw += HASH_TABLE.get(i)
     except KeyError:
         return Response({'error': 'Forbidden symbol during hashing, use only a-z, A-Z, 0-9, !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
 
     return hashed_pw
 
 def dehash_password(password: str) -> str:
-    dehash_table = json.loads(env('DEHASH_TABLE'))
     dehashed_pw = ''
 
     for i in password:
-        dehashed_pw += dehash_table.get(i)
+        dehashed_pw += DEHASH_TABLE.get(i)
 
     return dehashed_pw
 
@@ -32,10 +29,9 @@ def dehash_password(password: str) -> str:
 def generate_token() -> str:
     # create token
     token = ''
-    hash_table = json.load(env('HASH_TABLE'))
 
     for _ in range(49): # limit is 50
-        token += random.choice(hash_table.keys())
+        token += random.choice(list(HASH_TABLE.keys()))
 
     # check if it's unique
     if User.objects.filter(token=token).first() is not None:

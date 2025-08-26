@@ -1,6 +1,9 @@
 # env
 .env
 
+# hash table (used to hash passwords and tokens)
+hashes.py
+
 # auto-generated
 *.sqlite3
 **/__pycache__/**

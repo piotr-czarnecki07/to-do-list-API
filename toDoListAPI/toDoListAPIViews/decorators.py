@@ -3,8 +3,8 @@ from rest_framework import status
 from functools import wraps
 
 from db_model.models import User
-from toDoListAPI.settings import env
 from toDoListAPIViews.utilities import hash_password
+from toDoListAPIViews.hashes import HASH_TABLE
 
 import json
 
@@ -15,19 +15,19 @@ def check_signup_post_data(view):
         # check parameters
         for param in ('username', 'email', 'password'):
             if param not in request.data: # email and password fields were checked with decorators
-                return Response({'error', 'username, email or password is missing'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Username, email or password is missing'}, status=status.HTTP_400_BAD_REQUEST)
 
         # check if email is unique
         if User.objects.filter(email=request.data.get('email')).first() is not None:
-            return Response({'error', 'This email is already taken'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'This email is already taken'}, status=status.HTTP_400_BAD_REQUEST)
         
         # validate password
         if len(request.data.get('password')) > 50: # check length to not slow down the program with a for loop
-            return Response({'error', 'Password is too long'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Password is too long'}, status=status.HTTP_400_BAD_REQUEST)
 
         for i in request.data.get('password'):
-            if i not in json.loads(env('HASH_TABLE')).keys():
-                return Response({'error', 'Password contains forbidden symbols. Available symbols: a-z A-Z 0-9 !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
+            if i not in HASH_TABLE.keys():
+                return Response({'error': 'Password contains forbidden symbols. Available symbols: a-z A-Z 0-9 !@#$%^&*()'}, status=status.HTTP_400_BAD_REQUEST)
 
         return view(request)
 
