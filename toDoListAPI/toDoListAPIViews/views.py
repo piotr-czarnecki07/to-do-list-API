@@ -44,11 +44,16 @@ def login(request):
             return Response({'error': 'Email or password was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.filter(email=request.data['email']).first() # get user record from db
-    hashed_pw = hash_password(request.data['password']) # get password and hash it
+    if user is None:
+        return Response({'error': 'User with this email was not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    hashed_pw = hash_password(request.data['password']) # get password and hash it
     if user.password != hashed_pw: # check if sent password is the same as the one in the db
         return Response({'error': 'Password is incorrect'}, status=status.HTTP_403_FORBIDDEN)
     
+    if user.token != 'logged_out': # check if user isn't logged in already
+        return Response({'message': 'User is already logged in'}, status=status.HTTP_200_OK)
+
     token = generate_token() # generate new token
     hashed_token = hash_password(token)
 
